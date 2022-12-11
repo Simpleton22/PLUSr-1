@@ -1,0 +1,117 @@
+# Subroutine to initialize variables used by the PLUSr's subroutine
+def initialize_PLUSrs(m, n):
+    '''
+    m = the total number of PLUSrs
+    n = the maximun total number of inputs that a PLUSr could have
+    
+    TY = Total y where y is the Boolean supervisory control input, 1 or 0
+    TnY = Total not y where y is the Boolean supervisory control input, 1 or 0 and not y is the opposit of y
+    
+    TA = Total A where TA is an array that hold a total of a Boolean input array so that TA[i,j] += A[j} where i = the ith PLUSr index and j = the jth input of the ith PLUSr
+    TnA = Total not A where TnA is an array that hold a total of a Boolean input array so that TA[i,j] += not A[j} where i and j are as stated above
+    
+    TAY = Total of a logical AND of A AND Y where TAY is an array that hold a total of a Boolean input array A ANDed with the Boolean supervisory control input Y, so that TAY[i,j] += A[j} and Y[i] where i and j are as stated above
+    TAnY = Total of a logical AND of A AND not Y where TAnY is an array that hold a total of a Boolean input array A ANDed with the opposite of the Boolean supervisory control input Y, so that TAnY[i,j] += A[j} and not Y[i]
+    TnAY = Total of a logical AND of not A AND Y where TnAY is an array that hold a total of the opposite a Boolean input array A ANDed with the Boolean supervisory control input Y, so that TnAY[i,j] += not A[j} and Y[i]
+    TAnnY = Total of a logical AND of not A AND not Y where TnAnY is an array that hold a total of the opposite Boolean input array A ANDed with the opposite of the Boolean supervisory control input Y, so that TnAnY[i,j] += not A[j} and not Y[i]
+    '''
+    
+    TY = np.ones(m, dtype=np.int32) 
+    TnY = np.ones(m, dtype=np.int32) 
+    
+    TA = np.ones((m, n), dtype=np.int32)
+    TnA = np.ones((m, n), dtype=np.int32)
+    TAY = np.ones((m, n), dtype=np.int32)
+    TAnY = np.ones((m, n), dtype=np.int32)
+    TnAY = np.ones((m, n), dtype=np.int32)
+    TnAnY = np.ones((m, n), dtype=np.int32)
+    W = np.ones((m, n), dtype=np.int32)
+    
+    # WARNING - Make all dtype the same and an integer
+    
+    # Storing the variables in a dictionary called data
+    data = {}
+    
+    data = {'TY' : TY,
+        'TnY' : TnY,
+        'TA' : TA,
+        'TnA' : TnA,
+        'TAY' : TAY,
+        'TAnY' : TAnY,
+        'TnAY' : TnAY,
+        'TnAnY' : TnAnY,
+        'W' : W}
+    
+    # Return a dictionary with the variables initialized to ones
+    return data
+
+# Subroutine for the Progressive Logic Unit Subroutine, PLUSr, this code is faster than the original code
+def PLUSr(i, A, n, data, L, y):
+    '''
+    i = An integer of the ith PLUSr
+    A = An integer array with n inputs in the array
+    n = An integer with the number of inputs in the array A
+    data = the dictionary of PLUSr's data (see below)
+    y = An integer of the ith PLUS's Boolean supervisory control input y
+    L = An integer of the ith PLUS's Boolean learning control input L when L = 1 the ith PLUSr is in the learning mode and L = 0 when not
+    
+    TY = Total y where y is the Boolean supervisory control input, 1 or 0
+    TnY = Total not y where y is the Boolean supervisory control input, 1 or 0 and not y is the opposit of y
+    
+    TA = Total A where TA is an array that hold a total of a Boolean input array so that TA[i,j] += A[j} where i = the ith PLUSr index and j = the jth input of the ith PLUSr
+    TnA = Total not A where TnA is an array that hold a total of a Boolean input array so that TA[i,j] += not A[j} where i and j are as stated above
+    
+    TAY = Total of a logical AND of A AND Y where TAY is an array that hold a total of a Boolean input array A ANDed with the Boolean supervisory control input Y, so that TAY[i,j] += A[j} and Y[i] where i and j are as stated above
+    TAnY = Total of a logical AND of A AND not Y where TAnY is an array that hold a total of a Boolean input array A ANDed with the opposite of the Boolean supervisory control input Y, so that TAnY[i,j] += A[j} and not Y[i]
+    TnAY = Total of a logical AND of not A AND Y where TnAY is an array that hold a total of the opposite a Boolean input array A ANDed with the Boolean supervisory control input Y, so that TnAY[i,j] += not A[j} and Y[i]
+    TAnnY = Total of a logical AND of not A AND not Y where TnAnY is an array that hold a total of the opposite Boolean input array A ANDed with the opposite of the Boolean supervisory control input Y, so that TnAnY[i,j] += not A[j} and not Y[i]
+    
+    W = Weight matrix of the jth input of the ith PLUSr to be sum as the resultant, r, or negated from the sum of the resultant, r, depending on the state of the input A 
+    '''
+
+    TY = data['TY']
+    TnY = data['TnY']
+    TA = data['TA']
+    TnA = data['TnA']
+    TAY = data['TAY']
+    TAnY = data['TAnY']
+    TnAY = data['TnAY']
+    TnAnY = data['TnAnY']
+    W = data['W']
+    
+    # Check and see if the ith PLUSr is in the learning mode, if so update the data
+    if L:
+        TY[i] += y
+        TnY[i] += 1 - y
+        TA[i,0:n] += A[0:n]
+        TnA[i,0:n] += 1 - A[0:n]
+        TAY[i,0:n] += A[0:n] * y
+        TAnY[i,0:n] += A[0:n] * (1-y)
+        TnAY[i,0:n] += (1-A[0:n]) * y
+        TnAnY[i,0:n] += (1-A[0:n]) * (1-y)
+        W[i,0:n] = TnA[i,0:n] * (TnY[i] * TAY[i,0:n] - TY[i] * TAnY[i,0:n]) + TA[i,0:n] * (TY[i] * TnAnY[i,0:n] - TnY[i] * TnAY[i,0:n])
+        
+    # Calculate the resultant, r, of the sum of the weights of the ith PLUSr's inputs w
+    r = np.sum(W[i, 0:n] * A[0:n] - W[i, 0:n] * (1 - A[0:n]))
+        
+    # Determine the output of the ith PLUSr, z.
+    if r > 0:
+        z = 1
+    elif r < 0:
+        z = 0
+    else:
+        z = np.random.randint(2)
+        
+    # Storing the variables in a dictionary called data
+    data = {'TY' : TY,
+        'TnY' : TnY,
+        'TA' : TA,
+        'TnA' : TnA,
+        'TAY' : TAY,
+        'TAnY' : TAnY,
+        'TnAY' : TnAY,
+        'TnAnY' : TnAnY,
+        'W' : W}
+    
+    return r, z, data
+        
